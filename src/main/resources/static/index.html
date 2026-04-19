@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Finance Tracker</title>
+	<style>
+		:root {
+			--bg: #f6f7fb;
+			--card: #ffffff;
+			--text: #1e2430;
+			--muted: #64748b;
+			--accent: #0f766e;
+			--border: #dbe2ea;
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+			background: radial-gradient(circle at top right, #dff5ef, var(--bg) 45%);
+			color: var(--text);
+			display: grid;
+			place-items: center;
+			padding: 24px;
+		}
+
+		.card {
+			width: min(760px, 100%);
+			background: var(--card);
+			border: 1px solid var(--border);
+			border-radius: 16px;
+			padding: 28px;
+			box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+		}
+
+		h1 {
+			margin: 0 0 10px;
+			font-size: 2rem;
+		}
+
+		p {
+			margin: 0 0 16px;
+			color: var(--muted);
+			line-height: 1.5;
+		}
+
+		ul {
+			margin: 0;
+			padding-left: 18px;
+		}
+
+		li { margin: 8px 0; }
+
+		a {
+			color: var(--accent);
+			text-decoration: none;
+			font-weight: 600;
+		}
+
+		a:hover { text-decoration: underline; }
+	</style>
+</head>
+<body>
+<main class="card">
+	<h1>Finance Tracker is running</h1>
+	<p>The Spring Boot app is up inside Docker. Use the links below to verify key routes.</p>
+	<ul>
+		<li><a href="/h2-console">Open H2 Console</a></li>
+		<li><a href="/api/subscriptions/renewing?days=7">Check renewing subscriptions (7 days)</a></li>
+	</ul>
+</main>
+</body>
+</html>
