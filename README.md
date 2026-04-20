@@ -24,7 +24,7 @@ The system is designed as a REST API under `/api/v1/**`, using layered architect
 | Security | Spring Security (dev-permissive API/H2 setup) |
 | Build Tool | Maven |
 | Containerization | Docker + Docker Compose |
-| View / Frontend |  |
+| View / Frontend | JavaFX Desktop Client (MVC-style UI + API client layer) |
 
 ## 3. Instructions to Run
 
@@ -48,6 +48,17 @@ mvn spring-boot:run
 
 App URL: `http://localhost:8080`  
 API base: `http://localhost:8080/api/v1`
+
+### Run JavaFX desktop frontend
+
+Start backend first, then in a second terminal run:
+
+```bash
+mvn javafx:run
+```
+
+The JavaFX client opens with a dark, high-contrast theme and tabs that cover all backend modules:
+auth/users, payments, subscriptions, expenses, budgets, categories, notifications, and reports/export.
 
 ### Run with Docker
 
