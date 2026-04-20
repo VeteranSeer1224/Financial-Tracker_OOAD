@@ -11,4 +11,7 @@ WORKDIR /app
 
 COPY --from=build /app/target/classes /app/classes
 
-CMD ["java", "-cp", "/app/classes", "com.minip.financialtracker.App"]
+# Docker containers are typically headless, so this image runs the CLI app.
+# Run JavaFX desktop UI on host machine with: mvn javafx:run
+ENV APP_MAIN_CLASS=com.minip.financialtracker.App
+CMD ["sh", "-c", "java -cp /app/classes ${APP_MAIN_CLASS}"]

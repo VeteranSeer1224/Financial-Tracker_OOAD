@@ -2,6 +2,7 @@ package com.minip.financialtracker.service;
 
 import com.minip.financialtracker.model.Budget;
 import com.minip.financialtracker.model.Category;
+import com.minip.financialtracker.model.Subscription;
 import com.minip.financialtracker.model.Transaction;
 import com.minip.financialtracker.model.TransactionType;
 
@@ -17,10 +18,12 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 public class FinancialTracker {
     private final List<Transaction> transactions = new ArrayList<>();
     private final Map<Category, Budget> budgets = new EnumMap<>(Category.class);
+    private final List<Subscription> subscriptions = new ArrayList<>();
 
     public Transaction addIncome(String description, BigDecimal amount, Category category, LocalDate date) {
         return addTransaction(TransactionType.INCOME, description, amount, category, date);
@@ -105,6 +108,56 @@ public class FinancialTracker {
                     .append(System.lineSeparator());
         }
         return status.toString().trim();
+    }
+
+    public Subscription addSubscription(String name, BigDecimal amount, Category category, int billingDay) {
+        Subscription subscription = new Subscription(name, amount, category, billingDay);
+        subscriptions.add(subscription);
+        return subscription;
+    }
+
+    public List<Subscription> getSubscriptions() {
+        return subscriptions.stream()
+                .sorted(Comparator.comparing(Subscription::getName))
+                .toList();
+    }
+
+    public List<Budget> getBudgets() {
+        return budgets.values().stream()
+                .sorted(Comparator.comparing(budget -> budget.getCategory().name()))
+                .toList();
+    }
+
+    public boolean setSubscriptionActive(UUID subscriptionId, boolean active) {
+        for (Subscription subscription : subscriptions) {
+            if (subscription.getId().equals(subscriptionId)) {
+                subscription.setActive(active);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public List<Transaction> postDueSubscriptions(YearMonth month) {
+        Objects.requireNonNull(month, "month");
+        List<Transaction> created = new ArrayList<>();
+        for (Subscription subscription : subscriptions) {
+            if (!subscription.isActive()) {
+                continue;
+            }
+            LocalDate dueDate = subscription.dueDateFor(month);
+            boolean alreadyPosted = transactions.stream()
+                    .anyMatch(transaction ->
+                            transaction.getType() == TransactionType.EXPENSE
+                                    && transaction.getDate().equals(dueDate)
+                                    && transaction.getDescription().equals(subscription.getName())
+                                    && transaction.getCategory() == subscription.getCategory()
+                                    && transaction.getAmount().compareTo(subscription.getAmount()) == 0);
+            if (!alreadyPosted) {
+                created.add(addExpense(subscription.getName(), subscription.getAmount(), subscription.getCategory(), dueDate));
+            }
+        }
+        return created;
     }
 
     private Transaction addTransaction(TransactionType type, String description, BigDecimal amount, Category category, LocalDate date) {

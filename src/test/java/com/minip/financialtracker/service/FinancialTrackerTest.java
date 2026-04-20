@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,5 +42,14 @@ class FinancialTrackerTest {
 
         assertTrue(status.contains("FOOD"));
         assertTrue(status.contains("remaining"));
+    }
+
+    @Test
+    void dueSubscriptionsCreateSingleExpensePerMonth() {
+        FinancialTracker tracker = new FinancialTracker();
+        tracker.addSubscription("Music App", new BigDecimal("9.99"), Category.ENTERTAINMENT, 5);
+
+        assertEquals(1, tracker.postDueSubscriptions(YearMonth.of(2026, 4)).size());
+        assertEquals(0, tracker.postDueSubscriptions(YearMonth.of(2026, 4)).size());
     }
 }
