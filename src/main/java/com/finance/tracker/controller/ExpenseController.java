@@ -44,6 +44,11 @@ public class ExpenseController {
         return expenseService.getUserExpenses(userId);
     }
 
+    @GetMapping("/users/{userId}/expenses/{expenseId}")
+    public Expense getExpense(@PathVariable UUID userId, @PathVariable UUID expenseId) {
+        return expenseService.getExpenseById(expenseId);
+    }
+
     @DeleteMapping("/users/{userId}/expenses/{expenseId}")
     public void deleteExpense(@PathVariable UUID userId, @PathVariable UUID expenseId) {
         expenseService.deleteExpense(userId, expenseId);

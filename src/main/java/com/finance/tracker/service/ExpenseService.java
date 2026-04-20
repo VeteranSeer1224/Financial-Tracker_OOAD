@@ -77,6 +77,11 @@ public class ExpenseService {
         return expenseRepository.findByUserUserId(userId);
     }
 
+    public Expense getExpenseById(UUID expenseId) {
+        return expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found: " + expenseId));
+    }
+
     @Transactional
     public void deleteExpense(UUID userId, UUID expenseId) {
         Expense expense = expenseRepository.findByExpenseIdAndUserUserId(expenseId, userId)
@@ -96,16 +101,15 @@ public class ExpenseService {
         if (category.getBudgetLimit() <= 0) {
             return;
         }
-        double ratio = category.getCurrentSpending() / category.getBudgetLimit();
         Budget syntheticBudget = Budget.builder()
                 .budgetId(category.getCategoryId())
                 .name(category.getName())
                 .spendingLimit(category.getBudgetLimit())
                 .currentSpending(category.getCurrentSpending())
                 .build();
-        if (ratio >= 1.0) {
+        if (syntheticBudget.checkThreshold(1.0)) {
             notificationService.notifyBudgetExceeded(syntheticBudget, userId);
-        } else if (ratio >= 0.8) {
+        } else if (syntheticBudget.checkThreshold(0.8)) {
             notificationService.notifyBudgetWarning(syntheticBudget, userId);
         }
     }
@@ -122,7 +126,7 @@ public class ExpenseService {
             if (add) {
                 if (budget.isExceeded()) {
                     notificationService.notifyBudgetExceeded(budget, userId);
-                } else if (budget.getSpendingLimit() > 0 && budget.getCurrentSpending() >= (budget.getSpendingLimit() * 0.8)) {
+                } else if (budget.checkThreshold(0.8)) {
                     notificationService.notifyBudgetWarning(budget, userId);
                 }
             }
