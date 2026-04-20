@@ -1,5 +1,6 @@
 package com.finance.tracker.service;
 
+import com.finance.tracker.exception.ResourceNotFoundException;
 import com.finance.tracker.infrastructure.notification.INotificationSender;
 import com.finance.tracker.model.entity.Budget;
 import com.finance.tracker.model.entity.Notification;
@@ -73,5 +74,13 @@ public class NotificationService {
             sender.send(message, userId.toString());
         }
         return saved;
+    }
+
+    @Transactional
+    public Notification markAsRead(UUID userId, UUID notificationId) {
+        Notification notification = notificationRepository.findByNotificationIdAndUserUserId(notificationId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found: " + notificationId));
+        notification.markAsRead();
+        return notificationRepository.save(notification);
     }
 }
