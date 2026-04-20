@@ -46,7 +46,7 @@ public class ExpenseController {
 
     @GetMapping("/users/{userId}/expenses/{expenseId}")
     public Expense getExpense(@PathVariable UUID userId, @PathVariable UUID expenseId) {
-        return expenseService.getExpenseById(expenseId);
+        return expenseService.getExpenseById(userId, expenseId);
     }
 
     @DeleteMapping("/users/{userId}/expenses/{expenseId}")

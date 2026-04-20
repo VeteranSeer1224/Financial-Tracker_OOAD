@@ -82,6 +82,11 @@ public class ExpenseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found: " + expenseId));
     }
 
+    public Expense getExpenseById(UUID userId, UUID expenseId) {
+        return expenseRepository.findByExpenseIdAndUserUserId(expenseId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found: " + expenseId));
+    }
+
     @Transactional
     public void deleteExpense(UUID userId, UUID expenseId) {
         Expense expense = expenseRepository.findByExpenseIdAndUserUserId(expenseId, userId)

@@ -4,26 +4,23 @@ import com.finance.tracker.model.entity.Notification;
 import com.finance.tracker.service.NotificationScheduler;
 import com.finance.tracker.service.NotificationService;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
 public class NotificationController {
+
     private final NotificationScheduler notificationScheduler;
     private final NotificationService notificationService;
 
     @PostMapping("/notifications/scheduler/run")
-    public String runSchedulerNow() {
+    public Map<String, String> runSchedulerNow() {
         notificationScheduler.runScheduledCheck();
-        return "Scheduler run completed";
+        return Map.of("status", "Scheduler run completed");
     }
 
     @GetMapping("/users/{userId}/notifications")
@@ -33,6 +30,6 @@ public class NotificationController {
 
     @PatchMapping("/users/{userId}/notifications/{notificationId}/read")
     public Notification markAsRead(@PathVariable UUID userId, @PathVariable UUID notificationId) {
-        return notificationService.markAsRead(notificationId);
+        return notificationService.markAsRead(userId, notificationId);
     }
 }
