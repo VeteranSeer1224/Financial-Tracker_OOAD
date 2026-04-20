@@ -36,6 +36,10 @@ public class Budget {
         return spendingLimit - currentSpending;
     }
 
+    public double getRemainingBudget() {
+        return getRemainingBalance();
+    }
+
     public boolean isExceeded() {
         return spendingLimit > 0 && currentSpending >= spendingLimit;
     }
