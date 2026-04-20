@@ -1,8 +1,7 @@
 package com.finance.tracker.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.finance.tracker.model.enums.CategoryType;
+import com.finance.tracker.model.enums.NotificationType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -11,6 +10,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,35 +23,32 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Entity
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-public class Category {
+public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID categoryId;
-
-    private String name;
+    private UUID notificationId;
 
     @Enumerated(EnumType.STRING)
-    private CategoryType type;
+    private NotificationType type;
 
-    private double budgetLimit;
-    private double currentSpending;
+    private String message;
+    private boolean read;
+    private LocalDateTime createdAt;
+    private String referenceId;
+    private boolean silentlyDismissed;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     private User user;
 
-    public void trackSpending(double amount) {
-        if (amount > 0) {
-            currentSpending += amount;
+    @PrePersist
+    public void initTimestamp() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
         }
     }
 
-    public boolean checkBudgetLimit() {
-        return budgetLimit > 0 && currentSpending >= budgetLimit;
-    }
-
-    public double getRemainingBudget() {
-        return budgetLimit - currentSpending;
+    public void markAsRead() {
+        this.read = true;
     }
 }
