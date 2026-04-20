@@ -2,11 +2,13 @@ package com.finance.tracker.service;
 
 import com.finance.tracker.model.entity.Budget;
 import com.finance.tracker.model.entity.Subscription;
+import com.finance.tracker.model.enums.NotificationType;
 import com.finance.tracker.model.enums.SubscriptionStatus;
 import com.finance.tracker.repository.BudgetRepository;
 import com.finance.tracker.repository.SubscriptionRepository;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -35,11 +37,15 @@ public class NotificationScheduler {
                 continue;
             }
 
-            double usedRatio = budget.getCurrentSpending() / budget.getSpendingLimit();
-            if (budget.isExceeded()) {
-                notificationService.notifyBudgetExceeded(budget, budget.getUser().getUserId());
-            } else if (usedRatio >= 0.8 && budget.getRemainingBudget() >= 0) {
-                notificationService.notifyBudgetWarning(budget, budget.getUser().getUserId());
+            String referenceId = budget.getBudgetId().toString();
+            UUID userId = budget.getUser().getUserId();
+            if (budget.isExceeded()
+                    && !notificationService.isDuplicate(userId, NotificationType.BUDGET_EXCEEDED, referenceId)) {
+                notificationService.notifyBudgetExceeded(budget, userId);
+            } else if (budget.checkThreshold(0.8)
+                    && budget.getRemainingBudget() >= 0
+                    && !notificationService.isDuplicate(userId, NotificationType.BUDGET_WARNING, referenceId)) {
+                notificationService.notifyBudgetWarning(budget, userId);
             }
         }
     }

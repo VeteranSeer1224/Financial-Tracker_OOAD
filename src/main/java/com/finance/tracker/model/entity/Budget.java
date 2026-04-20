@@ -44,6 +44,10 @@ public class Budget {
         return spendingLimit > 0 && currentSpending >= spendingLimit;
     }
 
+    public boolean checkThreshold(double warningPct) {
+        return spendingLimit > 0 && (currentSpending / spendingLimit) >= warningPct;
+    }
+
     public void addSpending(double amount) {
         if (amount > 0) {
             this.currentSpending += amount;
