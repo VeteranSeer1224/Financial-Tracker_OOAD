@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,5 +49,10 @@ public class UserController {
     @PutMapping("/{userId}")
     public User updateUser(@PathVariable UUID userId, @Valid @RequestBody UpdateUserRequest request) {
         return authenticationService.updateProfile(userId, request.getName(), request.getEmail());
+    }
+
+    @DeleteMapping("/{userId}")
+    public void deleteUser(@PathVariable UUID userId) {
+        authenticationService.deleteUser(userId);
     }
 }

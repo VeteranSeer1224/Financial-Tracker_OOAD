@@ -51,4 +51,10 @@ public class AuthenticationService {
     public void logout(UUID userId) {
         getUser(userId);
     }
+
+    @Transactional
+    public void deleteUser(UUID userId) {
+        getUser(userId);
+        userRepository.deleteById(userId);
+    }
 }
