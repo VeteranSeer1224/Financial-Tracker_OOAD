@@ -26,6 +26,7 @@ public class SubscriptionService {
     private final UserRepository userRepository;
     private final PaymentMethodRepository paymentMethodRepository;
     private final CategoryRepository categoryRepository;
+    private final NotificationService notificationService; 
 
     @Transactional
     public Subscription createSubscription(
@@ -52,7 +53,12 @@ public class SubscriptionService {
         if (subscription.getStatus() == null) {
             subscription.setStatus(SubscriptionStatus.ACTIVE);
         }
-        return subscriptionRepository.save(subscription);
+        Subscription savedSubscription = subscriptionRepository.save(subscription);
+        
+        // Evaluate for immediate notifications
+        triggerRenewalNotificationIfDue(savedSubscription, userId);
+        
+        return savedSubscription;
     }
 
     public Subscription getSubscription(UUID subscriptionId) {
@@ -89,6 +95,20 @@ public class SubscriptionService {
         subscription.setStatus(status);
         subscription.setBillingCycle(billingCycle);
         subscription.updateNextPaymentDate();
-        return subscriptionRepository.save(subscription);
+        
+        Subscription updatedSubscription = subscriptionRepository.save(subscription);
+        
+        // Evaluate in case the new dates push it into the warning window
+        if (status == SubscriptionStatus.ACTIVE) {
+            triggerRenewalNotificationIfDue(updatedSubscription, userId);
+        }
+        
+        return updatedSubscription;
+    }
+    private void triggerRenewalNotificationIfDue(Subscription subscription, UUID userId) {
+        if (subscription.getBillingCycle() != null && 
+            subscription.getBillingCycle().getDaysUntilNextPayment() <= 3) {
+            notificationService.notifySubscriptionRenewal(subscription, userId);
+        }
     }
 }
