@@ -10,6 +10,7 @@ import com.finance.tracker.model.enums.NotificationType;
 import com.finance.tracker.repository.NotificationRepository;
 import com.finance.tracker.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,11 +42,12 @@ public class NotificationService {
 
     @Transactional
     public void notifySubscriptionRenewal(Subscription sub, UUID userId) {
+        long daysUntil = sub.getBillingCycle().getDaysUntilNextPayment();
+        String nextDate = String.valueOf(sub.getBillingCycle().getNextPaymentDate());
         createAndSend(
                 userId,
                 NotificationType.RENEWAL_REMINDER,
-                "Subscription '" + sub.getServiceName() + "' renews in " + sub.getBillingCycle().getDaysUntilNextPayment()
-                        + " day(s).",
+                sub.getServiceName() + " renews in " + daysUntil + " days on " + nextDate + " for " + sub.getCost(),
                 sub.getSubscriptionId().toString());
     }
 
@@ -76,9 +78,13 @@ public class NotificationService {
         return saved;
     }
 
+    public List<Notification> getUserNotifications(UUID userId) {
+        return notificationRepository.findByUserUserId(userId);
+    }
+
     @Transactional
-    public Notification markAsRead(UUID userId, UUID notificationId) {
-        Notification notification = notificationRepository.findByNotificationIdAndUserUserId(notificationId, userId)
+    public Notification markAsRead(UUID notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found: " + notificationId));
         notification.markAsRead();
         return notificationRepository.save(notification);

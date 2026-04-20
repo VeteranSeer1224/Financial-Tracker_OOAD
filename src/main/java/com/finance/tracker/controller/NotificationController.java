@@ -1,7 +1,6 @@
 package com.finance.tracker.controller;
 
 import com.finance.tracker.model.entity.Notification;
-import com.finance.tracker.repository.NotificationRepository;
 import com.finance.tracker.service.NotificationScheduler;
 import com.finance.tracker.service.NotificationService;
 import java.util.List;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 public class NotificationController {
     private final NotificationScheduler notificationScheduler;
-    private final NotificationRepository notificationRepository;
     private final NotificationService notificationService;
 
     @PostMapping("/notifications/scheduler/run")
@@ -30,11 +28,11 @@ public class NotificationController {
 
     @GetMapping("/users/{userId}/notifications")
     public List<Notification> getUserNotifications(@PathVariable UUID userId) {
-        return notificationRepository.findByUserUserId(userId);
+        return notificationService.getUserNotifications(userId);
     }
 
     @PatchMapping("/users/{userId}/notifications/{notificationId}/read")
     public Notification markAsRead(@PathVariable UUID userId, @PathVariable UUID notificationId) {
-        return notificationService.markAsRead(userId, notificationId);
+        return notificationService.markAsRead(notificationId);
     }
 }
