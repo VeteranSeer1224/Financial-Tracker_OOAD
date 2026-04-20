@@ -1,6 +1,7 @@
 package com.finance.tracker.controller;
 
 import com.finance.tracker.dto.subscription.CreateSubscriptionRequest;
+import com.finance.tracker.dto.subscription.UpdateSubscriptionRequest;
 import com.finance.tracker.model.entity.BillingCycle;
 import com.finance.tracker.model.entity.Subscription;
 import com.finance.tracker.model.enums.SubscriptionStatus;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -63,5 +65,24 @@ public class SubscriptionController {
     @PatchMapping("/subscriptions/{subscriptionId}/status")
     public Subscription updateStatus(@PathVariable UUID subscriptionId, @RequestParam SubscriptionStatus status) {
         return subscriptionService.updateSubscriptionStatus(subscriptionId, status);
+    }
+
+    @PutMapping("/users/{userId}/subscriptions/{subscriptionId}")
+    public Subscription updateSubscription(
+            @PathVariable UUID userId,
+            @PathVariable UUID subscriptionId,
+            @Valid @RequestBody UpdateSubscriptionRequest request) {
+        BillingCycle billingCycle = BillingCycle.builder()
+                .frequency(request.getFrequency())
+                .customIntervalDays(request.getCustomIntervalDays())
+                .startDate(request.getStartDate())
+                .build();
+        return subscriptionService.updateSubscription(
+                userId,
+                subscriptionId,
+                request.getServiceName(),
+                request.getCost(),
+                request.getStatus(),
+                billingCycle);
     }
 }

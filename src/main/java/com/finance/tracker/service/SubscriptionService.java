@@ -2,6 +2,7 @@ package com.finance.tracker.service;
 
 import com.finance.tracker.exception.ResourceNotFoundException;
 import com.finance.tracker.exception.ValidationException;
+import com.finance.tracker.model.entity.BillingCycle;
 import com.finance.tracker.model.entity.Category;
 import com.finance.tracker.model.entity.Subscription;
 import com.finance.tracker.model.entity.User;
@@ -67,6 +68,27 @@ public class SubscriptionService {
     public Subscription updateSubscriptionStatus(UUID subscriptionId, SubscriptionStatus status) {
         Subscription subscription = getSubscription(subscriptionId);
         subscription.setStatus(status);
+        return subscriptionRepository.save(subscription);
+    }
+
+    @Transactional
+    public Subscription updateSubscription(
+            UUID userId,
+            UUID subscriptionId,
+            String serviceName,
+            double cost,
+            SubscriptionStatus status,
+            BillingCycle billingCycle) {
+        if (cost <= 0) {
+            throw new ValidationException("Subscription cost must be positive");
+        }
+        Subscription subscription = subscriptionRepository.findBySubscriptionIdAndUserUserId(subscriptionId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found: " + subscriptionId));
+        subscription.setServiceName(serviceName);
+        subscription.setCost(cost);
+        subscription.setStatus(status);
+        subscription.setBillingCycle(billingCycle);
+        subscription.updateNextPaymentDate();
         return subscriptionRepository.save(subscription);
     }
 }
