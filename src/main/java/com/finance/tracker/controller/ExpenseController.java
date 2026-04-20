@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,5 +42,10 @@ public class ExpenseController {
     @GetMapping("/users/{userId}/expenses")
     public List<Expense> getExpenses(@PathVariable UUID userId) {
         return expenseService.getUserExpenses(userId);
+    }
+
+    @DeleteMapping("/users/{userId}/expenses/{expenseId}")
+    public void deleteExpense(@PathVariable UUID userId, @PathVariable UUID expenseId) {
+        expenseService.deleteExpense(userId, expenseId);
     }
 }

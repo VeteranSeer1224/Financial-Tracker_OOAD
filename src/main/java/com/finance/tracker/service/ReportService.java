@@ -44,9 +44,12 @@ public class ReportService {
         report.put("totalSubscriptionCost", subscriptions.stream().mapToDouble(Subscription::getCost).sum());
         report.put("totalExpenseCost", expenses.stream().mapToDouble(Expense::getAmount).sum());
         report.put("expensesByPaymentMethod",
-                expenses.stream().collect(Collectors.groupingBy(
-                        e -> Hibernate.getClass(e.getPaymentMethod()).getSimpleName(),
-                        Collectors.summingDouble(Expense::getAmount))));
+                expenses.stream()
+                        .collect(Collectors.groupingBy(
+                                e -> e.getPaymentMethod() == null
+                                        ? "UNSPECIFIED"
+                                        : Hibernate.getClass(e.getPaymentMethod()).getSimpleName(),
+                                Collectors.summingDouble(Expense::getAmount))));
         return report;
     }
 

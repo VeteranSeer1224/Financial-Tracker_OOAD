@@ -10,6 +10,7 @@ import com.finance.tracker.model.enums.CategoryType;
 import com.finance.tracker.model.payment.PaymentMethod;
 import com.finance.tracker.repository.CategoryRepository;
 import com.finance.tracker.repository.ExpenseRepository;
+import com.finance.tracker.repository.BudgetRepository;
 import com.finance.tracker.repository.PaymentMethodRepository;
 import com.finance.tracker.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
 public class ExpenseService {
     private final ExpenseRepository expenseRepository;
     private final CategoryRepository categoryRepository;
+    private final BudgetRepository budgetRepository;
     private final PaymentMethodRepository paymentMethodRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
@@ -66,12 +68,28 @@ public class ExpenseService {
         category.trackSpending(expense.getAmount());
         categoryRepository.save(category);
         triggerBudgetNotification(userId, category);
+        updateMatchingBudgets(userId, category, expense.getAmount(), true);
 
         return savedExpense;
     }
 
     public List<Expense> getUserExpenses(UUID userId) {
         return expenseRepository.findByUserUserId(userId);
+    }
+
+    @Transactional
+    public void deleteExpense(UUID userId, UUID expenseId) {
+        Expense expense = expenseRepository.findByExpenseIdAndUserUserId(expenseId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found: " + expenseId));
+
+        Category category = expense.getCategoryEntity();
+        if (category != null) {
+            category.setCurrentSpending(Math.max(0, category.getCurrentSpending() - expense.getAmount()));
+            categoryRepository.save(category);
+            updateMatchingBudgets(userId, category, expense.getAmount(), false);
+        }
+
+        expenseRepository.delete(expense);
     }
 
     private void triggerBudgetNotification(UUID userId, Category category) {
@@ -89,6 +107,25 @@ public class ExpenseService {
             notificationService.notifyBudgetExceeded(syntheticBudget, userId);
         } else if (ratio >= 0.8) {
             notificationService.notifyBudgetWarning(syntheticBudget, userId);
+        }
+    }
+
+    private void updateMatchingBudgets(UUID userId, Category category, double amount, boolean add) {
+        List<Budget> budgets = budgetRepository.findByUserUserIdAndNameIgnoreCase(userId, category.getName());
+        for (Budget budget : budgets) {
+            if (add) {
+                budget.addSpending(amount);
+            } else {
+                budget.setCurrentSpending(Math.max(0, budget.getCurrentSpending() - amount));
+            }
+            budgetRepository.save(budget);
+            if (add) {
+                if (budget.isExceeded()) {
+                    notificationService.notifyBudgetExceeded(budget, userId);
+                } else if (budget.getSpendingLimit() > 0 && budget.getCurrentSpending() >= (budget.getSpendingLimit() * 0.8)) {
+                    notificationService.notifyBudgetWarning(budget, userId);
+                }
+            }
         }
     }
 }

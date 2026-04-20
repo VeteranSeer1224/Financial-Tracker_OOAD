@@ -73,4 +73,9 @@ public class Expense implements IReportable {
     public String getPaymentMethodType() {
         return paymentMethod == null ? null : Hibernate.getClass(paymentMethod).getSimpleName();
     }
+
+    @JsonIgnore
+    public Category getCategoryEntity() {
+        return category;
+    }
 }
