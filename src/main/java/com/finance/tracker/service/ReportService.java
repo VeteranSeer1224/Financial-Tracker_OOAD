@@ -31,11 +31,19 @@ public class ReportService {
     private final IReportExporter pdfExporter;
 
     public Map<String, Object> generateMonthlyReport(UUID userId, int month, int year) {
+        return generateMonthlyReport(userId, month, year, null);
+    }
+
+    public Map<String, Object> generateMonthlyReport(UUID userId, int month, int year, List<CategoryType> categories) {
         LocalDate from = LocalDate.of(year, month, 1);
         LocalDate to = from.withDayOfMonth(from.lengthOfMonth());
-        List<Expense> expenses = expenseRepository.findByUserUserIdAndDateBetween(userId, from, to);
+        List<Expense> expenses = applyCategoryFilter(expenseRepository.findByUserUserIdAndDateBetween(userId, from, to), categories);
         List<Subscription> subscriptions =
-                subscriptionRepository.findByUserUserIdAndStatus(userId, SubscriptionStatus.ACTIVE);
+                subscriptionRepository.findByUserUserIdAndStatus(userId, SubscriptionStatus.ACTIVE).stream()
+                        .filter(subscription -> subscription.getNextPaymentDate() != null
+                                && !subscription.getNextPaymentDate().isBefore(from)
+                                && !subscription.getNextPaymentDate().isAfter(to))
+                        .toList();
 
         Map<String, Object> report = new HashMap<>();
         report.put("reportType", "MONTHLY");
@@ -47,29 +55,59 @@ public class ReportService {
                 expenses.stream()
                         .collect(Collectors.groupingBy(
                                 e -> e.getPaymentMethod() == null
-                                        ? "UNSPECIFIED"
+                                        ? "UNKNOWN"
                                         : Hibernate.getClass(e.getPaymentMethod()).getSimpleName(),
                                 Collectors.summingDouble(Expense::getAmount))));
         return report;
     }
 
     public Map<String, Object> generateAnnualReport(UUID userId, int year) {
+        return generateAnnualReport(userId, year, null);
+    }
+
+    public Map<String, Object> generateAnnualReport(UUID userId, int year, List<CategoryType> categories) {
         List<Map<String, Object>> months = new ArrayList<>();
         for (int month = 1; month <= 12; month++) {
-            months.add(generateMonthlyReport(userId, month, year));
+            months.add(generateMonthlyReport(userId, month, year, categories));
         }
+        double totalAnnualExpenses = months.stream()
+                .mapToDouble(month -> ((Number) month.getOrDefault("totalExpenseCost", 0)).doubleValue())
+                .sum();
+        double totalAnnualSubscriptions = months.stream()
+                .mapToDouble(month -> ((Number) month.getOrDefault("totalSubscriptionCost", 0)).doubleValue())
+                .sum();
         Map<String, Object> report = new HashMap<>();
         report.put("reportType", "ANNUAL");
         report.put("year", year);
         report.put("monthlyReports", months);
+        report.put(
+                "summary",
+                Map.of(
+                        "totalAnnualExpenses", totalAnnualExpenses,
+                        "totalAnnualSubscriptions", totalAnnualSubscriptions,
+                        "grandTotal", totalAnnualExpenses + totalAnnualSubscriptions));
         return report;
     }
 
     public Map<String, Object> generateOptimizationReport(UUID userId) {
+        return generateOptimizationReport(userId, null);
+    }
+
+    public Map<String, Object> generateOptimizationReport(UUID userId, List<CategoryType> categories) {
+        List<Expense> filteredExpenses = applyCategoryFilter(expenseRepository.findByUserUserId(userId), categories);
         Map<String, Object> report = new HashMap<>();
         report.put("reportType", "OPTIMIZATION");
-        report.put("topExpenses", getTopExpenses(userId, 10));
-        report.put("unusedSubscriptions", identifyUnusedSubscriptions(userId));
+        report.put(
+                "topExpenses",
+                filteredExpenses.stream()
+                        .sorted(Comparator.comparingDouble(Expense::getAmount).reversed())
+                        .limit(10)
+                        .toList());
+        report.put(
+                "unusedSubscriptions",
+                identifyUnusedSubscriptions(userId).stream()
+                        .map(subscription -> Map.of("subscription", subscription, "considerCancelling", true))
+                        .toList());
         return report;
     }
 
@@ -100,6 +138,15 @@ public class ReportService {
         LocalDate threshold = LocalDate.now().minusDays(30);
         return subscriptionRepository.findByUserUserIdAndStatus(userId, SubscriptionStatus.ACTIVE).stream()
                 .filter(sub -> sub.getLastAccessDate() == null || sub.getLastAccessDate().isBefore(threshold))
+                .toList();
+    }
+
+    private List<Expense> applyCategoryFilter(List<Expense> expenses, List<CategoryType> categories) {
+        if (categories == null || categories.isEmpty()) {
+            return expenses;
+        }
+        return expenses.stream()
+                .filter(expense -> categories.contains(expense.getCategory()))
                 .toList();
     }
 }

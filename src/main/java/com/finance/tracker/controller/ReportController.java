@@ -1,6 +1,8 @@
 package com.finance.tracker.controller;
 
+import com.finance.tracker.model.enums.CategoryType;
 import com.finance.tracker.service.ReportService;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -20,18 +22,24 @@ public class ReportController {
     private final ReportService reportService;
 
     @GetMapping("/monthly")
-    public Map<String, Object> monthly(@PathVariable UUID userId, @RequestParam int month, @RequestParam int year) {
-        return reportService.generateMonthlyReport(userId, month, year);
+    public Map<String, Object> monthly(
+            @PathVariable UUID userId,
+            @RequestParam int month,
+            @RequestParam int year,
+            @RequestParam(required = false) List<CategoryType> categories) {
+        return reportService.generateMonthlyReport(userId, month, year, categories);
     }
 
     @GetMapping("/annual")
-    public Map<String, Object> annual(@PathVariable UUID userId, @RequestParam int year) {
-        return reportService.generateAnnualReport(userId, year);
+    public Map<String, Object> annual(
+            @PathVariable UUID userId, @RequestParam int year, @RequestParam(required = false) List<CategoryType> categories) {
+        return reportService.generateAnnualReport(userId, year, categories);
     }
 
     @GetMapping("/optimization")
-    public Map<String, Object> optimization(@PathVariable UUID userId) {
-        return reportService.generateOptimizationReport(userId);
+    public Map<String, Object> optimization(
+            @PathVariable UUID userId, @RequestParam(required = false) List<CategoryType> categories) {
+        return reportService.generateOptimizationReport(userId, categories);
     }
 
     @GetMapping("/export")
@@ -40,11 +48,12 @@ public class ReportController {
             @RequestParam String type,
             @RequestParam(required = false) Integer month,
             @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) List<CategoryType> categories,
             @RequestParam(defaultValue = "csv") String format) {
         Map<String, Object> data = switch (type.toLowerCase()) {
-            case "monthly" -> reportService.generateMonthlyReport(userId, month, year);
-            case "annual" -> reportService.generateAnnualReport(userId, year);
-            case "optimization" -> reportService.generateOptimizationReport(userId);
+            case "monthly" -> reportService.generateMonthlyReport(userId, month, year, categories);
+            case "annual" -> reportService.generateAnnualReport(userId, year, categories);
+            case "optimization" -> reportService.generateOptimizationReport(userId, categories);
             default -> throw new IllegalArgumentException("Unknown report type: " + type);
         };
         byte[] content = reportService.exportReport(data, format);
