@@ -20,5 +20,8 @@ public class CreateUserRequest {
     @NotBlank
     private String password;
 
+    @NotBlank
+    private String otp;
+
     private Map<String, Boolean> notificationPreferences;
 }

@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import javafx.application.Application;
@@ -33,6 +34,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TextInputControl;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
@@ -74,6 +76,7 @@ public class FinanceTrackerDesktopApp extends Application {
     private final TextField emailField = new TextField();
     private final TextField currencyField = new TextField("INR");
     private final PasswordField passwordField = new PasswordField();
+    private final TextField otpField = new TextField();
 
     // Step 2: wallet setup
     private final ComboBox<String> paymentTypeField = combo("CREDIT_CARD", "BANK_ACCOUNT", "DIGITAL_WALLET");
@@ -178,6 +181,13 @@ public class FinanceTrackerDesktopApp extends Application {
         emailField.setPromptText("Email");
         currencyField.setPromptText("Currency");
         passwordField.setPromptText("Password");
+        otpField.setPromptText("OTP");
+
+        Button requestOtp = new Button("Request OTP");
+        requestOtp.setOnAction(event -> runRequest(
+                "Request OTP",
+                () -> apiClient.post("/api/v1/auth/otp/request", Map.of("email", emailField.getText())),
+                result -> setStatus("OTP generated. Check server console.", false)));
 
         Button register = new Button("Create Profile");
         register.getStyleClass().add("led-button");
@@ -187,6 +197,7 @@ public class FinanceTrackerDesktopApp extends Application {
             payload.put("email", emailField.getText());
             payload.put("currencySetting", currencyField.getText());
             payload.put("password", passwordField.getText());
+            payload.put("otp", otpField.getText());
             payload.put(
                     "notificationPreferences",
                     Map.of("BUDGET_WARNING", true, "BUDGET_EXCEEDED", true, "RENEWAL_REMINDER", true));
@@ -203,38 +214,42 @@ public class FinanceTrackerDesktopApp extends Application {
         Button login = new Button("Login");
         login.setOnAction(event -> runRequest(
                 "Login",
-                () -> {
-                    JsonNode loginResponse = apiClient.post(
-                            "/api/v1/auth/login", Map.of("email", emailField.getText(), "password", passwordField.getText()));
-                    JsonNode users = apiClient.get("/api/v1/users");
-                    String email = emailField.getText().trim();
-                    if (users.isArray()) {
-                        for (JsonNode user : users) {
-                            if (email.equalsIgnoreCase(user.path("email").asText())) {
-                                activeUserId = UUID.fromString(user.path("userId").asText());
-                                break;
-                            }
-                        }
-                    }
-                    if (activeUserId == null) {
-                        throw new IllegalArgumentException("Login succeeded, but user profile could not be loaded.");
-                    }
-                    return loginResponse;
-                },
+                () -> apiClient.post("/api/v1/auth/login", Map.of("email", emailField.getText(), "password", passwordField.getText())),
                 result -> {
-                    completed[0] = true;
-                    setStatus("Login successful. Moving to payment setup...", false);
-                    showInfoDialog("Welcome Back", "Signed in successfully.");
-                    autoAdvanceStep();
+                    TextInputDialog otpDialog = new TextInputDialog();
+                    otpDialog.setTitle("OTP Verification");
+                    otpDialog.setHeaderText("Enter the OTP shown in the server console");
+                    otpDialog.setContentText("OTP:");
+                    Optional<String> otpValue = otpDialog.showAndWait();
+                    if (otpValue.isEmpty() || otpValue.get().isBlank()) {
+                        setStatus("Login cancelled. OTP is required.", true);
+                        return;
+                    }
+                    runRequest(
+                            "Verify Login OTP",
+                            () -> apiClient.post(
+                                    "/api/v1/auth/login/verify",
+                                    Map.of("email", emailField.getText(), "otp", otpValue.get())),
+                            verifyResult -> {
+                                if (!verifyResult.path("authenticated").asBoolean(false)) {
+                                    throw new IllegalArgumentException("OTP verification failed.");
+                                }
+                                activeUserId = UUID.fromString(verifyResult.get("userId").asText());
+                                completed[0] = true;
+                                setStatus("Login successful. Moving to payment setup...", false);
+                                showInfoDialog("Welcome Back", "Signed in successfully.");
+                                autoAdvanceStep();
+                            });
                 }));
 
-        bindRequired(register, nameField, emailField, currencyField, passwordField);
+        bindRequired(register, nameField, emailField, currencyField, passwordField, otpField);
 
         GridPane grid = grid();
         addRow(grid, 0, "Name", nameField, "Email", emailField);
         addRow(grid, 1, "Currency", currencyField, "Password", passwordField);
+        addRow(grid, 2, "OTP", otpField, null, null);
 
-        VBox step = card("Identity", grid, row(register, login));
+        VBox step = card("Identity", grid, row(requestOtp, register, login));
         return step;
     }
 

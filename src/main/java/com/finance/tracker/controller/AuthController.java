@@ -1,10 +1,13 @@
 package com.finance.tracker.controller;
 
+import com.finance.tracker.dto.auth.InitiateOtpRequest;
 import com.finance.tracker.dto.auth.LoginRequest;
+import com.finance.tracker.dto.auth.OtpRequest;
 import com.finance.tracker.dto.user.CreateUserRequest;
 import com.finance.tracker.exception.ValidationException;
 import com.finance.tracker.model.entity.User;
 import com.finance.tracker.service.AuthenticationService;
+import com.finance.tracker.service.OtpService;
 import jakarta.validation.Valid;
 import java.util.Map;
 import java.util.UUID;
@@ -22,9 +25,25 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth")
 public class AuthController {
     private final AuthenticationService authenticationService;
+    private final OtpService otpService;
+
+    @PostMapping("/otp/request")
+    public Map<String, Object> requestOtp(@Valid @RequestBody InitiateOtpRequest request) {
+        otpService.generateOtp(request.getEmail());
+        return Map.of("message", "OTP generated. Check server console.");
+    }
+
+    @PostMapping("/otp/verify")
+    public Map<String, Object> verifyOtp(@Valid @RequestBody OtpRequest request) {
+        boolean valid = otpService.validateOtp(request.getEmail(), request.getOtp());
+        return Map.of("valid", valid);
+    }
 
     @PostMapping("/register")
     public User register(@Valid @RequestBody CreateUserRequest request) {
+        if (!otpService.validateOtp(request.getEmail(), request.getOtp())) {
+            throw new ValidationException("Invalid or expired OTP");
+        }
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
@@ -41,7 +60,18 @@ public class AuthController {
         if (!authenticated) {
             throw new ValidationException("Invalid email or password");
         }
-        return Map.of("authenticated", true);
+        otpService.generateOtp(request.getEmail());
+        return Map.of("message", "Credentials valid. OTP sent. Check server console.");
+    }
+
+    @PostMapping("/login/verify")
+    public Map<String, Object> verifyLoginOtp(@Valid @RequestBody OtpRequest request) {
+        boolean valid = otpService.validateOtp(request.getEmail(), request.getOtp());
+        if (!valid) {
+            throw new ValidationException("Invalid or expired OTP");
+        }
+        User user = authenticationService.getUserByEmail(request.getEmail());
+        return Map.of("authenticated", true, "userId", user.getUserId());
     }
 
     @PostMapping("/logout/{userId}")
