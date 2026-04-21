@@ -7,6 +7,7 @@ import jakarta.transaction.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,12 @@ public class AuthenticationService {
 
     @Transactional
     public User register(User user) {
+        return register(user, user.getPassword());
+    }
+
+    @Transactional
+    public User register(User user, String password) {
+        user.setPassword(password);
         if (user.getNotificationPreferences() == null || user.getNotificationPreferences().isEmpty()) {
             Map<String, Boolean> defaults = new HashMap<>();
             defaults.put("RENEWAL_REMINDER", true);
@@ -45,7 +52,14 @@ public class AuthenticationService {
     }
 
     public boolean login(String email, String password) {
-        return userRepository.findByEmail(email).isPresent() && password != null && !password.isBlank();
+        return userRepository.findByEmail(email)
+                .map(user -> Objects.equals(user.getPassword(), password))
+                .orElse(false);
+    }
+
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found for email: " + email));
     }
 
     public void logout(UUID userId) {

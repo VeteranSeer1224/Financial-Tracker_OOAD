@@ -29,9 +29,10 @@ public class AuthController {
                 .name(request.getName())
                 .email(request.getEmail())
                 .currencySetting(request.getCurrencySetting())
+                .password(request.getPassword())
                 .notificationPreferences(request.getNotificationPreferences())
                 .build();
-        return authenticationService.register(user);
+        return authenticationService.register(user, request.getPassword());
     }
 
     @PostMapping("/login")

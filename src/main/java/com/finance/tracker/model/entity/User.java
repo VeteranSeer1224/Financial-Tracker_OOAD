@@ -39,6 +39,8 @@ public class User {
     private String name;
     private String email;
     private String currencySetting;
+    @JsonIgnore
+    private String password;
 
     @ElementCollection
     @CollectionTable(name = "user_notification_preferences", joinColumns = @JoinColumn(name = "user_id"))

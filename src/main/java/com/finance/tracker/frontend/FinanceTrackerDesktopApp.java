@@ -186,6 +186,7 @@ public class FinanceTrackerDesktopApp extends Application {
             payload.put("name", nameField.getText());
             payload.put("email", emailField.getText());
             payload.put("currencySetting", currencyField.getText());
+            payload.put("password", passwordField.getText());
             payload.put(
                     "notificationPreferences",
                     Map.of("BUDGET_WARNING", true, "BUDGET_EXCEEDED", true, "RENEWAL_REMINDER", true));

@@ -17,5 +17,8 @@ public class CreateUserRequest {
     @NotBlank
     private String currencySetting;
 
+    @NotBlank
+    private String password;
+
     private Map<String, Boolean> notificationPreferences;
 }
